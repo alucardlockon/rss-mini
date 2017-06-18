@@ -5,10 +5,63 @@
     <title>View</title>
 </head>
 <body>
-<button>上一个</button>
-<button>下一个</button>
-<button>刷新</button>
+<button id="btn_prev" onclick="if(page>1)page--;showPage()">上一个</button>
+<input type="text" id="curr_page" value="1" onchange="page=parseInt(this.value);showPage()">
+/
+<span id="total_page">0</span>
+<button id="btn_next" onclick="if(page<pages.length)page++;showPage()">下一个</button>
+<button id="btn_refresh">刷新</button>
+<button id="btn_option">配置</button>
+<h1 id="title" style="width: 100%"></h1>
+<div id="content" style="width: 100%"></div>
 </body>
 <script>
+    const $ = require('jquery')
+    const FeedParser = require('feedparser')
+    const request = require('request')
+    const iconv = require('iconv-lite')
+    let pages = []
+    let page = 1
+
+    $('#btn_refresh').click(() => {
+        const testUrl = 'http://tech.qq.com/web/it/telerss.xml'
+        //const testUrl='http://127.0.0.1:3001/job/TestNetCoreWeb_daliy/rssAll'
+
+        let feedparser = new FeedParser()
+        var req = request(testUrl)
+
+        pages = []
+        req.on('response', function (res) {
+            let stream = this
+
+            if (res.statusCode !== 200) {
+                this.emit('error', new Error('Bad status code'))
+            }
+            else {
+                stream
+                    .pipe(iconv.decodeStream('GBK'))
+                    .pipe(feedparser)
+            }
+        })
+        feedparser.on('readable', function () {
+            let stream = this;
+            let item
+
+            while (item = stream.read()) {
+                pages.push(item)
+            }
+            showPage(1)
+        })
+    })
+
+    const showPage = () => {
+        if (pages.length > page - 1) {
+            $('#title').html(pages[page - 1].title)
+            $('#content').html(pages[page - 1].description)
+        }
+        $('#curr_page').val(page)
+        $('#total_page').html(pages.length)
+    }
+
 </script>
 </html>
